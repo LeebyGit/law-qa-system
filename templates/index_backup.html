@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>법령 질의응답 시스템</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>🏛️ 법령 질의응답 시스템</h1>
+            <p class="subtitle">국가법령정보센터 기반 법령 검색 및 AI 답변 서비스</p>
+        </header>
+
+        <main class="main-content">
+            <div class="search-section">
+                <div class="input-group">
+                    <textarea 
+                        id="questionInput" 
+                        placeholder="법령에 관한 질문을 입력해주세요. 예: '임대차 계약에서 보증금 반환 의무는 언제까지인가요?'"
+                        rows="3"
+                    ></textarea>
+                    <button id="askButton" onclick="askQuestion()">
+                        <span class="button-text">질문하기</span>
+                        <div class="spinner" id="spinner"></div>
+                    </button>
+                </div>
+            </div>
+
+            <div class="results-section" id="resultsSection" style="display: none;">
+                <div class="answer-card">
+                    <h3>📋 답변</h3>
+                    <div id="answerContent" class="answer-content"></div>
+                </div>
+
+                <div class="sources-card">
+                    <h3>📚 근거 법령</h3>
+                    <div id="sourcesContent" class="sources-content"></div>
+                </div>
+            </div>
+
+            <div class="error-message" id="errorMessage" style="display: none;"></div>
+
+            <div class="example-questions">
+                <h3>💡 예시 질문</h3>
+                <div class="example-grid">
+                    <button class="example-btn" onclick="setQuestion('계약서에 서명했는데 해지하고 싶어요. 가능한가요?')">
+                        계약 해지 관련
+                    </button>
+                    <button class="example-btn" onclick="setQuestion('임대차 보증금은 언제까지 반환받을 수 있나요?')">
+                        임대차 보증금
+                    </button>
+                    <button class="example-btn" onclick="setQuestion('직장에서 부당해고를 당했습니다. 어떤 권리가 있나요?')">
+                        부당해고 관련
+                    </button>
+                    <button class="example-btn" onclick="setQuestion('상속 시 법정상속분은 어떻게 되나요?')">
+                        상속 관련
+                    </button>
+                </div>
+            </div>
+        </main>
+
+        <footer class="footer">
+            <p>⚠️ 본 서비스는 법적 조언이 아닌 정보 제공 목적입니다. 정확한 법적 조언은 전문가에게 문의하세요.</p>
+            <p>📊 데이터 출처: 국가법령정보센터</p>
+        </footer>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>

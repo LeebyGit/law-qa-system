@@ -1,0 +1,11 @@
+# 이 파일을 .env로 복사하고 실제 API 키로 수정하세요
+
+# 국가법령정보센터 API 키
+# https://www.law.go.kr 에서 발급받을 수 있습니다
+LAW_API_KEY=your_law_api_key_here
+
+# Flask 설정
+FLASK_DEBUG=True
+
+# 참고: OpenAI API는 더 이상 필요하지 않습니다.
+# 구조화된 답변 시스템을 사용합니다.

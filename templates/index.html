@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>법령 질의응답 시스템 (심플 버전)</title>
+    <style>
+        body {
+            font-family: 'Malgun Gothic', sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #2c5aa0;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .input-group {
+            margin-bottom: 20px;
+        }
+        
+        input[type="text"] {
+            width: 70%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        
+        button {
+            width: 25%;
+            padding: 12px;
+            background: #2c5aa0;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-left: 10px;
+        }
+        
+        button:hover {
+            background: #1e3f73;
+        }
+        
+        .answer-box {
+            background: #f8f9fa;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 20px;
+            margin-top: 20px;
+            white-space: pre-wrap;
+            line-height: 1.6;
+        }
+        
+        .loading {
+            text-align: center;
+            color: #666;
+            font-style: italic;
+        }
+        
+        .examples {
+            margin: 20px 0;
+            padding: 15px;
+            background: #e3f2fd;
+            border-radius: 5px;
+        }
+        
+        .examples h3 {
+            margin-top: 0;
+            color: #1565c0;
+        }
+        
+        .example-btn {
+            background: #e3f2fd;
+            color: #1565c0;
+            border: 1px solid #1565c0;
+            padding: 5px 10px;
+            margin: 3px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .example-btn:hover {
+            background: #1565c0;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏛️ 법령 질의응답 시스템</h1>
+        <p style="text-align: center; color: #666;">국가법령정보센터 기반 간단한 법령 검색 서비스</p>
+        
+        <div class="examples">
+            <h3>예시 질문:</h3>
+            <button class="example-btn" onclick="setQuestion('산업단지 종류')">산업단지 종류</button>
+            <button class="example-btn" onclick="setQuestion('산업단지 지정권자')">산업단지 지정권자</button>
+            <button class="example-btn" onclick="setQuestion('공공주택 종류')">공공주택 종류</button>
+            <button class="example-btn" onclick="setQuestion('공공주택 지정권자')">공공주택 지정권자</button>
+        </div>
+        
+        <div class="input-group">
+            <input type="text" id="questionInput" placeholder="법령에 대한 질문을 입력하세요..." />
+            <button onclick="askQuestion()">질문하기</button>
+        </div>
+        
+        <div id="answerBox" class="answer-box" style="display: none;">
+            <div id="answerContent"></div>
+        </div>
+    </div>
+
+    <script>
+        function setQuestion(question) {
+            document.getElementById('questionInput').value = question;
+        }
+        
+        function askQuestion() {
+            const question = document.getElementById('questionInput').value.trim();
+            const answerBox = document.getElementById('answerBox');
+            const answerContent = document.getElementById('answerContent');
+            
+            if (!question) {
+                alert('질문을 입력해주세요.');
+                return;
+            }
+            
+            // 로딩 표시
+            answerBox.style.display = 'block';
+            answerContent.innerHTML = '<div class="loading">답변을 생성하고 있습니다...</div>';
+            
+            // API 호출
+            fetch('/ask', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ question: question })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    answerContent.innerHTML = `<div style="color: red;">오류: ${data.error}</div>`;
+                } else {
+                    answerContent.innerHTML = data.answer;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                answerContent.innerHTML = '<div style="color: red;">네트워크 오류가 발생했습니다.</div>';
+            });
+        }
+        
+        // Enter 키로 질문하기
+        document.getElementById('questionInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                askQuestion();
+            }
+        });
+    </script>
+</body>
+</html>
