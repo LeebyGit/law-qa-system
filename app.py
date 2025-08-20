@@ -5,6 +5,7 @@ import os
 import re
 import datetime
 from dotenv import load_dotenv
+from urllib.parse import quote
 
 load_dotenv()
 
@@ -366,89 +367,58 @@ def find_relevant_articles(articles, question, question_type, question_keywords)
     
     return relevant_articles
 
+def build_article_link(law_name, article_number):
+    """국가법령정보센터 조문 링크 생성"""
+    encoded_name = quote(law_name)
+    return f"https://www.law.go.kr/법령/{encoded_name}/제{article_number}조"
+
+
 def generate_law_based_answer(question, laws_with_articles, question_keywords):
-    """실제 법령 조문을 기반으로 답변 생성 (개선된 버전)"""
+    """실제 법령 조문을 기반으로 구조화된 답변 생성"""
     if not laws_with_articles:
-        return f"'{question}'에 대한 관련 법령을 찾을 수 없습니다. 더 구체적인 질문을 해주세요."
-    
-    # 질문 유형 분석
+        return {"conclusion": f"'{question}'에 대한 관련 법령을 찾을 수 없습니다.", "bases": []}
+
     question_type = analyze_question_type(question)
     print(f"🤔 질문 유형: {question_type}")
-    
-    answer = f"**질문:** {question}\n\n**답변:**\n"
-    
-    total_articles_found = 0
-    
+
+    bases = []
+    conclusion = ""
+
     for law_info in laws_with_articles:
         law_name = law_info['name']
         articles = law_info.get('articles', [])
-        
+
         if not articles:
             print(f"❌ {law_name}: 조문 없음")
             continue
-        
+
         print(f"📚 {law_name}: {len(articles)}개 조문 분석")
-        
-        # 질문과 관련된 조문 찾기 (이미 추출된 키워드 사용)
         relevant_articles = find_relevant_articles(articles, question, question_type, question_keywords)
         print(f"🔍 {law_name}: 관련 조문 {len(relevant_articles)}개 찾음")
-        if relevant_articles:
-            print(f"  - 제{relevant_articles[0].get('number')}조: {relevant_articles[0].get('title')}")
-        else:
-            print(f"  - 관련 조문 없음, 전체 조문 {len(articles)}개 중에서 선택")
-        
-        if relevant_articles:
-            answer += f"\n**{law_name}에 따르면:**\n"
-            
-            for article in relevant_articles:
-                number = article.get('number', '')
-                title = article.get('title', '')
-                content = article.get('content', '')
-                
-                if content:
-                    # 내용이 너무 길면 핵심 부분만 추출
-                    if len(content) > 400:
-                        sentences = content.split('.')
-                        important_sentences = []
-                        
-                        # 질문 키워드가 포함된 문장 우선 선택
-                        for sentence in sentences:
-                            if any(keyword in sentence for keyword in question_keywords):
-                                important_sentences.append(sentence.strip())
-                        
-                        # 중요 문장이 없으면 처음 2-3 문장 사용
-                        if not important_sentences:
-                            important_sentences = sentences[:3]
-                        
-                        content = '. '.join(important_sentences[:3]) + ('.' if important_sentences else '')
-                    
-                    answer += f"\n**제{number}조 ({title}):**\n"
-                    answer += f"{content}\n"
-                    total_articles_found += 1
-        else:
-            # 관련 조문이 없으면 처음 2개 조문 사용
-            print(f"⚠️ {law_name}: 관련 조문 없음, 처음 2개 조문 사용")
-            for article in articles[:2]:
-                number = article.get('number', '')
-                title = article.get('title', '')
-                content = article.get('content', '')
-                
-                if content:
-                    if len(content) > 400:
-                        content = content[:400] + "..."
-                    
-                    answer += f"\n**제{number}조 ({title}):**\n"
-                    answer += f"{content}\n"
-                    total_articles_found += 1
-    
-    if total_articles_found == 0:
-        answer += "\n조문 내용을 정상적으로 파싱할 수 없었습니다. API 응답을 확인 중입니다."
-    
-    answer += f"\n**법적 근거:** 위 조문들은 국가법령정보센터에서 제공하는 현행 법령입니다."
-    answer += f"\n**국가법령정보센터:** https://www.law.go.kr"
-    answer += f"\n\n*총 {total_articles_found}개 조문 기반 답변*"
-    
-    return answer
+        if not relevant_articles:
+            continue
+
+        article = relevant_articles[0]
+        number = article.get('number', '')
+        title = article.get('title', '')
+        content = article.get('content', '')
+        link = build_article_link(law_name, number)
+
+        bases.append({
+            'law_name': law_name,
+            'article_number': number,
+            'title': title,
+            'content': content,
+            'link': link
+        })
+
+        if not conclusion and content:
+            conclusion = content.split('.')[0].strip()
+
+    if not bases:
+        return {"conclusion": f"'{question}'에 대한 관련 법령을 찾을 수 없습니다.", "bases": []}
+
+    return {"conclusion": conclusion, "bases": bases}
 
 @app.route('/')
 def index():
@@ -498,44 +468,14 @@ def ask_question():
         
         # 5. 실제 법령 조문 기반 답변 생성
         if laws_with_articles:
-            answer = generate_law_based_answer(question, laws_with_articles, keywords)
+            result = generate_law_based_answer(question, laws_with_articles, keywords)
             print(f"\n✅ 답변 생성 완료")
         else:
-            answer = f"""'{question}'에 대한 관련 법령을 찾을 수 없습니다.
-
-다음과 같이 구체적으로 질문해주세요:
-- "산업단지 종류는 무엇인가요?"
-- "공공주택 지정권자는 누구인가요?" 
-- "○○법 제○조 내용을 알려주세요"
-
-**국가법령정보센터:** https://www.law.go.kr
-
-💡 검색된 키워드: {', '.join(keywords)}
-💡 질문 유형: {analyze_question_type(question)}"""
+            result = {"conclusion": f"'{question}'에 대한 관련 법령을 찾을 수 없습니다.", "bases": []}
             print(f"❌ 관련 법령 없음")
-        
-        # 6. 법령 목록 정리 (응답용)
-        law_list = []
-        for law_info in laws_with_articles:
-            law_list.append({
-                'name': law_info['name'],
-                'type': law_info['type'],
-                'article_count': len(law_info['articles'])
-            })
-        
+
         print("=" * 60)
-        print(f"🎯 응답 완료: {len(law_list)}개 법령, {sum(l['article_count'] for l in law_list)}개 조문")
-        
-        return jsonify({
-            'answer': answer,
-            'laws': law_list,
-            'keywords': keywords,
-            'question_type': analyze_question_type(question),
-            'debug_info': {
-                'total_laws': len(law_list),
-                'total_articles': sum(l['article_count'] for l in law_list)
-            }
-        })
+        return jsonify(result)
         
     except Exception as e:
         print(f"❌ 전체 오류: {e}")
