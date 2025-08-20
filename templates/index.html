@@ -153,9 +153,22 @@
             .then(data => {
                 if (data.error) {
                     answerContent.innerHTML = `<div style="color: red;">오류: ${data.error}</div>`;
-                } else {
-                    answerContent.innerHTML = data.answer;
+                    return;
                 }
+
+                let html = `<h3>결론</h3><p>${data.conclusion}</p>`;
+
+                if (data.bases && data.bases.length > 0) {
+                    html += `<h3>근거법과 세부조항</h3><ul>`;
+                    data.bases.forEach(b => {
+                        html += `<li><strong>${b.law_name} 제${b.article_number}조 (${b.title})</strong><br>${b.content} <a href="${b.link}" target="_blank">[링크]</a></li>`;
+                    });
+                    html += `</ul>`;
+                } else {
+                    html += `<p>관련 법령 없음</p>`;
+                }
+
+                answerContent.innerHTML = html;
             })
             .catch(error => {
                 console.error('Error:', error);
